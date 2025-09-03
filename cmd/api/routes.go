@@ -16,5 +16,5 @@ func (app *application) routes() http.Handler {
 	// setup routes
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
 
-	return router
+	return app.recoverPanic(router)
 }
