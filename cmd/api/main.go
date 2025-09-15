@@ -72,7 +72,7 @@ func loadConfig() configuration {
 	flag.StringVar(&cfg.env, "env", "development", "Environment(development|staging|production)")
 	flag.StringVar(&cfg.vrs, "version", "1.0.0", "Application version")
 	// read in the dsn
-	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://developer:root@localhost/quotes?sslmode=disable", "PostgreSQL DSN")
+	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://quotes:root@localhost/quotes?sslmode=disable", "PostgreSQL DSN")
 	flag.Parse()
 
 	return cfg
