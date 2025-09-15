@@ -104,3 +104,70 @@ func (a *application) displayQuoteHandler(
 	}
 
 }
+
+func (a *application) updateQuoteHandler(
+	w http.ResponseWriter,
+	r *http.Request) {
+	// Get the id from the URL
+	id, err := a.readIDParam(r)
+	if err != nil {
+		a.notFoundResponse(w, r)
+		return
+	}
+	// Call Get() to retrieve the quote with the specified id
+	quote, err := a.quoteModel.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			a.notFoundResponse(w, r)
+		default:
+			a.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	// Use our temporary incomingData struct to hold the data
+	// Note: I have changed the types to pointer to differentiate
+	// between the client leaving a field empty intentionally
+	// and the field not needing to be updated
+	var incomingData struct {
+		Content *string `json:"content"`
+		Author  *string `json:"author"`
+	}
+	// perform the decoding
+	err = a.readJSON(w, r, &incomingData)
+	if err != nil {
+		a.badRequestResponse(w, r, err)
+		return
+	}
+	// We need to now check the fields to see which ones need updating
+	// if incomingData.Content is nil, no update was provided
+	if incomingData.Content != nil {
+		quote.Content = *incomingData.Content
+	}
+	// if incomingData.Author is nil, no update was provided
+	if incomingData.Author != nil {
+		quote.Author = *incomingData.Author
+	}
+
+	// Before we write the updates to the DB let's validate
+	v := validator.New()
+	data.ValidateQuote(v, quote)
+	if !v.IsEmpty() {
+		a.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+	// perform the update
+	err = a.quoteModel.Update(quote)
+	if err != nil {
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+	data := envelope{
+		"quote": quote,
+	}
+	err = a.writeJSON(w, http.StatusOK, data, nil)
+	if err != nil {
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+}
