@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"net/http"
+
 	// import the data package which contains the definition for Quote
-	//   "github.com/2016114132/qod/internal/data"
+	"github.com/2016114132/qod/internal/data"
+	"github.com/2016114132/qod/internal/validator"
 )
 
 func (a *application) createQuoteHandler(w http.ResponseWriter,
@@ -21,6 +23,23 @@ func (a *application) createQuoteHandler(w http.ResponseWriter,
 	if err != nil {
 		// a.errorResponseJSON(w, r, http.StatusBadRequest, err.Error())
 		a.badRequestResponse(w, r, err)
+		return
+	}
+
+	// Copy the values from incomingData to a new Comment struct
+	// At this point in our code the JSON is well-formed JSON so now
+	// we will validate it using the Validator which expects a Comment
+	quote := &data.Quote{
+		Content: incomingData.Content,
+		Author:  incomingData.Author,
+	}
+	// Initialize a Validator instance
+	v := validator.New()
+
+	// Do the validation
+	data.ValidateQuote(v, quote)
+	if !v.IsEmpty() {
+		a.failedValidationResponse(w, r, v.Errors) // implemented later
 		return
 	}
 
