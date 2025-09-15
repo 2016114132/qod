@@ -116,3 +116,40 @@ func ValidateQuote(v *validator.Validator, quote *Quote) {
 	// check if the Author field is empty
 	v.Check(len(quote.Author) <= 25, "author", "must not bem more than 25 bytes long")
 }
+
+// Delete a specific Comment from the comments table
+func (c QuoteModel) Delete(id int64) error {
+
+	// check if the id is valid
+	if id < 1 {
+		return ErrRecordNotFound
+	}
+	// the SQL query to be executed against the database table
+	query := `
+        DELETE FROM quotes
+        WHERE id = $1
+      `
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	// ExecContext does not return any rows unlike QueryRowContext.
+	// It only returns  information about the the query execution
+	// such as how many rows were affected
+	result, err := c.DB.ExecContext(ctx, query, id)
+	if err != nil {
+		return err
+	}
+	// Were any rows  delete?
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	// Probably a wrong id was provided or the client is trying to
+	// delete an already deleted quote
+	if rowsAffected == 0 {
+		return ErrRecordNotFound
+	}
+
+	return nil
+
+}
