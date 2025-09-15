@@ -1,10 +1,43 @@
 package data
 
 import (
+	"context"
+	"database/sql"
+
 	"time"
 
 	"github.com/2016114132/qod/internal/validator"
 )
+
+// A QuoteModel expects a connection pool
+type QuoteModel struct {
+	DB *sql.DB
+}
+
+// Insert a new row in the quotes table
+// Expects a pointer to the actual comment
+func (c QuoteModel) Insert(quote *Quote) error {
+	// the SQL query to be executed against the database table
+	query := `
+        INSERT INTO quotes (content, author)
+        VALUES ($1, $2)
+        RETURNING id, created_at, version
+        `
+	// the actual values to replace $1, and $2
+	args := []any{quote.Content, quote.Author}
+	// Create a context with a 3-second timeout. No database
+	// operation should take more than 3 seconds or we will quit it
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	// execute the query against the quotes database table. We ask for the the
+	// id, created_at, and version to be sent back to us which we will use
+	// to update the quotes struct later on
+	return c.DB.QueryRowContext(ctx, query, args...).Scan(
+		&quote.ID,
+		&quote.CreatedAt,
+		&quote.Version)
+
+}
 
 // make our JSON keys be displayed in all lowercase
 // "-" means don't show this field

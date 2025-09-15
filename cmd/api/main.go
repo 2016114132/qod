@@ -11,6 +11,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/2016114132/qod/internal/data"
 	_ "github.com/lib/pq"
 )
 
@@ -23,8 +24,9 @@ type configuration struct {
 	}
 }
 type application struct {
-	config configuration
-	logger *slog.Logger
+	config     configuration
+	logger     *slog.Logger
+	quoteModel data.QuoteModel
 }
 
 func printUB() string {
@@ -53,8 +55,9 @@ func main() {
 
 	//Initialize applicatioin with dependencies
 	app := &application{
-		config: cfg,
-		logger: logger,
+		config:     cfg,
+		logger:     logger,
+		quoteModel: data.QuoteModel{DB: db},
 	}
 
 	// Start the application server

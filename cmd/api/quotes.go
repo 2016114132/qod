@@ -43,6 +43,28 @@ func (a *application) createQuoteHandler(w http.ResponseWriter,
 		return
 	}
 
+	// Add the quote to the database table
+	err = a.quoteModel.Insert(quote)
+	if err != nil {
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+
 	// for now display the result
 	fmt.Fprintf(w, "%+v\n", incomingData)
+
+	// Set a Location header. The path to the newly created comment
+	headers := make(http.Header)
+	headers.Set("Location", fmt.Sprintf("/v1/comments/%d", quote.ID))
+
+	// Send a JSON response with 201 (new resource created) status code
+	data := envelope{
+		"comment": quote,
+	}
+	err = a.writeJSON(w, http.StatusCreated, data, headers)
+	if err != nil {
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+
 }
