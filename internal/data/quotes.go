@@ -15,6 +15,27 @@ type QuoteModel struct {
 	DB *sql.DB
 }
 
+// make our JSON keys be displayed in all lowercase
+// "-" means don't show this field
+type Quote struct {
+	ID        int64     `json:"id"`
+	Content   string    `json:"content"`
+	Author    string    `json:"author"`
+	CreatedAt time.Time `json:"-"`
+	Version   int32     `json:"version"`
+}
+
+func ValidateQuote(v *validator.Validator, quote *Quote) {
+	// check if the Content field is empty
+	v.Check(quote.Content != "", "content", "must be provided")
+	// check if the Author field is empty
+	v.Check(quote.Author != "", "author", "must be provided")
+	// check if the Content field is empty
+	v.Check(len(quote.Content) <= 100, "content", "must not be more than 100 bytes long")
+	// check if the Author field is empty
+	v.Check(len(quote.Author) <= 25, "author", "must not bem more than 25 bytes long")
+}
+
 // Insert a new row in the quotes table
 // Expects a pointer to the actual comment
 func (c QuoteModel) Insert(quote *Quote) error {
@@ -96,27 +117,6 @@ func (c QuoteModel) Update(quote *Quote) error {
 
 }
 
-// make our JSON keys be displayed in all lowercase
-// "-" means don't show this field
-type Quote struct {
-	ID        int64     `json:"id"`
-	Content   string    `json:"content"`
-	Author    string    `json:"author"`
-	CreatedAt time.Time `json:"-"`
-	Version   int32     `json:"version"`
-}
-
-func ValidateQuote(v *validator.Validator, quote *Quote) {
-	// check if the Content field is empty
-	v.Check(quote.Content != "", "content", "must be provided")
-	// check if the Author field is empty
-	v.Check(quote.Author != "", "author", "must be provided")
-	// check if the Content field is empty
-	v.Check(len(quote.Content) <= 100, "content", "must not be more than 100 bytes long")
-	// check if the Author field is empty
-	v.Check(len(quote.Author) <= 25, "author", "must not bem more than 25 bytes long")
-}
-
 // Delete a specific Comment from the comments table
 func (c QuoteModel) Delete(id int64) error {
 
@@ -151,5 +151,53 @@ func (c QuoteModel) Delete(id int64) error {
 	}
 
 	return nil
+
+}
+
+// Get all comments
+func (c QuoteModel) GetAll() ([]*Quote, error) {
+
+	// the SQL query to be executed against the database table
+	query := `
+        SELECT id, created_at, content, author, version
+        FROM quotes
+        ORDER BY id
+      `
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	// QueryContext returns multiple rows.
+	rows, err := c.DB.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	// clean up the memory that was used
+	defer rows.Close()
+	// we will store the address of each comment in our slice
+	quotes := []*Quote{}
+
+	// process each row that is in rows
+	for rows.Next() {
+		var quote Quote
+		err := rows.Scan(&quote.ID,
+			&quote.CreatedAt,
+			&quote.Content,
+			&quote.Author,
+			&quote.Version,
+		)
+		if err != nil {
+			return nil, err
+		}
+		// add the row to our slice
+		quotes = append(quotes, &quote)
+	} // end of for loop
+	// after we exit the loop we need to check if it generated any errors
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	return quotes, nil
 
 }
