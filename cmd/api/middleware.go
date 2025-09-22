@@ -42,7 +42,7 @@ func (a *application) enableCORS(next http.Handler) http.Handler {
 		w.Header().Add("Vary", "Origin")
 
 		// The request method can vary so don't rely on cache
-		// w.Header().Add("Vary", "Access-Control-Request-Method")
+		w.Header().Add("Vary", "Access-Control-Request-Method")
 
 		// Let's check the request origin to see if it's in the trusted list
 		origin := r.Header.Get("Origin")
@@ -52,21 +52,21 @@ func (a *application) enableCORS(next http.Handler) http.Handler {
 			for i := range a.config.cors.trustedOrigins {
 				if origin == a.config.cors.trustedOrigins[i] {
 					w.Header().Set("Access-Control-Allow-Origin", origin)
-					// // check if it is a Preflight CORS request
-					// if r.Method == http.MethodOptions &&
-					// 	r.Header.Get("Access-Control-Request-Method") != "" {
-					// 	w.Header().Set("Access-Control-Allow-Methods",
-					// 		"OPTIONS, PUT, PATCH, DELETE")
-					// 	w.Header().Set("Access-Control-Allow-Headers",
-					// 		"Authorization, Content-Type")
+					// check if it is a Preflight CORS request
+					if r.Method == http.MethodOptions &&
+						r.Header.Get("Access-Control-Request-Method") != "" {
+						w.Header().Set("Access-Control-Allow-Methods",
+							"OPTIONS, PUT, PATCH, DELETE")
+						w.Header().Set("Access-Control-Allow-Headers",
+							"Authorization, Content-Type")
 
-					// 	// we need to send a 200 OK status. Also since there
-					// 	// is no need to continue the middleware chain we
-					// 	// we leave  - remember it is not a real 'comments' request but
-					// 	// only a preflight CORS request
-					// 	w.WriteHeader(http.StatusOK)
-					// 	return
-					// }
+						// we need to send a 200 OK status. Also since there
+						// is no need to continue the middleware chain we
+						// we leave  - remember it is not a real 'comments' request but
+						// only a preflight CORS request
+						w.WriteHeader(http.StatusOK)
+						return
+					}
 					break
 				}
 			}
