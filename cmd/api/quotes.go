@@ -241,7 +241,7 @@ func (a *application) listQuotesHandler(
 		return
 	}
 
-	quotes, err := a.quoteModel.GetAll(
+	quotes, metadata, err := a.quoteModel.GetAll(
 		queryParametersData.Content,
 		queryParametersData.Author,
 		queryParametersData.Filters,
@@ -253,7 +253,8 @@ func (a *application) listQuotesHandler(
 	}
 
 	data := envelope{
-		"quotes": quotes,
+		"quotes":    quotes,
+		"@metadata": metadata,
 	}
 	err = a.writeJSON(w, http.StatusOK, data, nil)
 	if err != nil {
