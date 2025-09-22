@@ -36,7 +36,7 @@ function(err) {
 
 // A very simple HTTP server
 func main() {
-	addr := flag.String("addr", ":9002", "Server address")
+	addr := flag.String("addr", ":9000", "Server address")
 	flag.Parse()
 
 	log.Printf("starting server on %s", *addr)
