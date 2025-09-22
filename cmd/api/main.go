@@ -70,11 +70,11 @@ func main() {
 	}
 
 	// Start the application server
-	if err := app.serve(); err != nil {
+	err = app.serve()
+	if err != nil {
 		logger.Error(err.Error())
 		os.Exit(1)
 	}
-
 }
 
 func loadConfig() configuration {
