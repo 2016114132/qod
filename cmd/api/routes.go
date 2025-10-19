@@ -21,6 +21,8 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodDelete, "/v1/quotes/:id", app.deleteQuoteHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/quotes", app.listQuotesHandler)
 
+	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
+
 	// Request sent first to recoverPanic()
 	// then sent to enableCORS()
 	// then sent to rateLimit()

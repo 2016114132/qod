@@ -36,6 +36,7 @@ type application struct {
 	config     configuration
 	logger     *slog.Logger
 	quoteModel data.QuoteModel
+	userModel  data.UserModel
 }
 
 func printUB() string {
@@ -67,6 +68,7 @@ func main() {
 		config:     cfg,
 		logger:     logger,
 		quoteModel: data.QuoteModel{DB: db},
+		userModel:  data.UserModel{DB: db},
 	}
 
 	// Start the application server

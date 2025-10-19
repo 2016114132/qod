@@ -1,7 +1,9 @@
 CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    id bigserial PRIMARY KEY,
+    created_at timestamp(0) WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    username text NOT NULL,
+    email citext UNIQUE NOT NULL,
+    password_hash bytea NOT NULL,
+    activated bool NOT NULL DEFAULT false,
+    version integer NOT NULL DEFAULT 1
 );
