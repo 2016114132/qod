@@ -50,6 +50,7 @@ type application struct {
 	userModel  data.UserModel
 	mailer     mailer.Mailer
 	wg         sync.WaitGroup // need this later for background jobs
+	tokenModel data.TokenModel
 }
 
 func printUB() string {
@@ -84,6 +85,7 @@ func main() {
 		userModel:  data.UserModel{DB: db},
 		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port,
 			cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
+		tokenModel: data.TokenModel{DB: db},
 	}
 
 	// Start the application server
