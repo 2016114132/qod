@@ -12,6 +12,10 @@ import (
 	"strings"
 	"time"
 
+	"sync"
+
+	"github.com/2016114132/qod/internal/mailer"
+
 	"github.com/2016114132/qod/internal/data"
 	_ "github.com/lib/pq"
 )
@@ -31,12 +35,21 @@ type configuration struct {
 		burst   int     // initial requests possible
 		enabled bool    // enable or disable rate limiter
 	}
+	smtp struct {
+		host     string
+		port     int
+		username string
+		password string
+		sender   string
+	}
 }
 type application struct {
 	config     configuration
 	logger     *slog.Logger
 	quoteModel data.QuoteModel
 	userModel  data.UserModel
+	mailer     mailer.Mailer
+	wg         sync.WaitGroup // need this later for background jobs
 }
 
 func printUB() string {
@@ -69,6 +82,8 @@ func main() {
 		logger:     logger,
 		quoteModel: data.QuoteModel{DB: db},
 		userModel:  data.UserModel{DB: db},
+		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port,
+			cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
 	}
 
 	// Start the application server
@@ -105,6 +120,23 @@ func loadConfig() configuration {
 
 	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", true,
 		"Enable rate limiter")
+
+	flag.StringVar(&cfg.smtp.host,
+		"smtp-host", "sandbox.smtp.mailtrap.io", "SMTP host")
+	// We have port 25, 465, 587, 2525. If 25 doesn't work choose another
+	flag.IntVar(&cfg.smtp.port, "smtp-port", 25, "SMTP port")
+
+	// Use your Username value provided by Mailtrap
+	flag.StringVar(&cfg.smtp.username, "smtp-username",
+		"c5a15ec98269db", "SMTP username")
+
+	// Use your Password value provided by Mailtrap
+	flag.StringVar(&cfg.smtp.password, "smtp-password",
+		"424567a8b96fde", "SMTP password")
+
+	flag.StringVar(&cfg.smtp.sender, "smtp-sender",
+		"QOD <no-reply@ub.edu.bz>",
+		"SMTP sender")
 
 	flag.Parse()
 

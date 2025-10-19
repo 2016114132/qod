@@ -188,3 +188,18 @@ func (a *application) getSingleIntegerParameter(
 
 	return intValue
 }
+
+// Accept a function and run it in the background also recover from any panic
+func (a *application) background(fn func()) {
+	a.wg.Add(1) // Use a wait group to ensure all goroutines finish before we exit
+	go func() {
+		defer a.wg.Done() // signal goroutine is done
+		defer func() {
+			err := recover()
+			if err != nil {
+				a.logger.Error(fmt.Sprintf("%v", err))
+			}
+		}()
+		fn() // Run the actual function
+	}()
+}

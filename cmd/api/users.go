@@ -55,6 +55,17 @@ func (a *application) registerUserHandler(w http.ResponseWriter,
 	response := envelope{
 		"user": user,
 	}
+
+	// Send the email as a Goroutine. We do this because it might take a long time
+	// and we don't want our handler to wait for that to finish. We will implement
+	// the background() function later
+	a.background(func() {
+		err = a.mailer.Send(user.Email, "user_welcome.tmpl", user)
+		if err != nil {
+			a.logger.Error(err.Error())
+		}
+	})
+
 	// Status code 201 resource created
 	err = a.writeJSON(w, http.StatusCreated, response, nil)
 	if err != nil {
