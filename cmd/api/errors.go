@@ -86,3 +86,20 @@ func (a *application) editConflictResponse(w http.ResponseWriter, r *http.Reques
 	a.errorResponseJSON(w, r, http.StatusConflict, message)
 
 }
+
+// Return a 401 status code
+func (a *application) invalidCredentialsResponse(w http.ResponseWriter, r *http.Request) {
+	message := "invalid authentication credentials"
+	a.errorResponseJSON(w, r, http.StatusUnauthorized, message)
+}
+
+// We set the WWW-Authenticate header to give a hint to the user as
+// to what they need to provide. Don't want to leave them guessing
+func (a *application) invalidAuthenticationTokenResponse(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("WWW-Authenticate", "Bearer")
+
+	message := "invalid or missing authentication token"
+	a.errorResponseJSON(w, r, http.StatusUnauthorized, message)
+
+}

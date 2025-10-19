@@ -13,14 +13,17 @@ import (
 
 // Purpose of the token
 const ScopeActivation = "activation"
+const ScopeAuthentication = "authentication"
 
+// Add struct tags. Only the token and the expiry time will be encoded
+// and sent in the JSON repsonse
 // Define our token
 type Token struct {
-	Plaintext string
-	Hash      []byte
-	UserID    int64
-	Expiry    time.Time
-	Scope     string
+	Plaintext string    `json:"token"`
+	Hash      []byte    `json:"-"`
+	UserID    int64     `json:"-"`
+	Expiry    time.Time `json:"expiry"`
+	Scope     string    `json:"-"`
 }
 
 // Generate a token for the user

@@ -1,8 +1,13 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
+	"strings"
+
+	"github.com/2016114132/qod/internal/data"
+	"github.com/2016114132/qod/internal/validator"
 
 	"net"
 	"sync" // need this for the Mutex that we will need
@@ -136,4 +141,62 @@ func (a *application) rateLimit(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 
+}
+
+func (a *application) authenticate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		// This header tells the servers not to cache the response when
+		// the Authorization header changes. This also means that the server is not
+		// supposed to serve the same cached data to all users regardless of their
+		// Authorization values. Each unique user gets their own cache entry
+		w.Header().Add("Vary", "Authorization")
+
+		// Get the Authorization header from the request. It should have the
+		// Bearer token
+		authorizationHeader := r.Header.Get("Authorization")
+
+		// If there is no Authorization header then we have an Anonymous user
+		if authorizationHeader == "" {
+			r = a.contextSetUser(r, data.AnonymousUser)
+			next.ServeHTTP(w, r)
+			return
+		}
+		// Bearer token present so parse it. The Bearer token is in the form
+		// Authorization: Bearer IEYZQUBEMPPAKPOAWTPV6YJ6RM
+		// We will implement invalidAuthenticationTokenResponse() later
+		headerParts := strings.Split(authorizationHeader, " ")
+		if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+			a.invalidAuthenticationTokenResponse(w, r)
+			return
+		}
+
+		// Get the actual token
+		token := headerParts[1]
+		// Validate
+		v := validator.New()
+
+		data.ValidateTokenPlaintext(v, token)
+		if !v.IsEmpty() {
+			a.invalidAuthenticationTokenResponse(w, r)
+			return
+		}
+
+		// Get the user info associated with this authentication token
+		user, err := a.userModel.GetForToken(data.ScopeAuthentication, token)
+		if err != nil {
+			switch {
+			case errors.Is(err, data.ErrRecordNotFound):
+				a.invalidAuthenticationTokenResponse(w, r)
+			default:
+				a.serverErrorResponse(w, r, err)
+			}
+			return
+		}
+		// Add the retrieved user info to the context
+		r = a.contextSetUser(r, user)
+
+		// Call the next handler in the chain.
+		next.ServeHTTP(w, r)
+	})
 }

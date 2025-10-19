@@ -12,6 +12,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+var AnonymousUser = &User{}
+
 type User struct {
 	ID        int64     `json:"id"`
 	CreatedAt time.Time `json:"created_at"`
@@ -231,4 +233,11 @@ func (u UserModel) GetForToken(tokenScope, tokenPlaintext string) (*User, error)
 	}
 	// Return the matching user.
 	return &user, nil
+}
+
+// Let's check if the current user is anonymous
+// Note: Go will compare the addresses to determine if they are same,
+// not if they have the same field values
+func (u *User) IsAnonymous() bool {
+	return u == AnonymousUser
 }

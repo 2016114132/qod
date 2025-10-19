@@ -28,9 +28,12 @@ func (app *application) routes() http.Handler {
 	// should only happens once, also we are not creating a resource
 	router.HandlerFunc(http.MethodPut, "/v1/users/activated", app.activateUserHandler)
 
+	router.HandlerFunc(http.MethodPost,
+		"/v1/tokens/authentication", app.createAuthenticationTokenHandler)
+
 	// Request sent first to recoverPanic()
 	// then sent to enableCORS()
 	// then sent to rateLimit()
 	// finally it is sent to the router.
-	return app.recoverPanic(app.enableCORS(app.rateLimit(router)))
+	return app.recoverPanic(app.enableCORS(app.rateLimit((app.authenticate(router)))))
 }
