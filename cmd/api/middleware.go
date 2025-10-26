@@ -2,8 +2,10 @@ package main
 
 import (
 	"errors"
+	"expvar"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/2016114132/qod/internal/data"
@@ -257,4 +259,101 @@ func (a *application) requirePermission(permissionCode string, next http.Handler
 
 	return a.requireActivatedUser(fn)
 
+}
+
+// We will create a new type right before we use it in our metrics middleware
+type metricsResponseWriter struct {
+	wrapped       http.ResponseWriter // the original http.ResponseWriter
+	statusCode    int                 // this will contain the status code we need
+	headerWritten bool                // has the response headers already been written?
+}
+
+// Create an new instance of our custom http.ResponseWriter once
+// we are provided with the original http.ResponseWriter. We will set
+// the status code to 200 by default since that is what Golang does as well
+// the headerWritten is false by default so no need to specify
+func newMetricsResponseWriter(w http.ResponseWriter) *metricsResponseWriter {
+	return &metricsResponseWriter{
+		wrapped:    w,
+		statusCode: http.StatusOK,
+	}
+}
+
+// Remember that the http.Header type is a map (key: value) of the headers
+// Our custom http.ResponseWriter does not need to change the way the Header()
+// method works, so all we do is call the original http.ResponseWriter's Header()
+// method when our custom http.ResponseWriter's Header() method is called
+func (mw *metricsResponseWriter) Header() http.Header {
+	return mw.wrapped.Header()
+}
+
+// Let's write the status code that is provided
+// Again the original http.ResponseWriter's WriteHeader() methods knows
+// how to do this
+func (mw *metricsResponseWriter) WriteHeader(statusCode int) {
+	mw.wrapped.WriteHeader(statusCode)
+	// After the call to WriteHeader() returns, we record
+	// the first status code for use in our metrics
+	// NOTE: Because we only want the first status code sent, we will
+	// ignore any other status code that gets written. For example,
+	// mw.WriteHeader(404) followed by mw.WriteHeader(500). The client
+	// will receive a 404, the 500 will never be sent
+	if !mw.headerWritten {
+		mw.statusCode = statusCode
+		mw.headerWritten = true
+	}
+}
+
+// The write() method simply calls the original http.ResponseWriter's
+// Write() method which write the data to the connection
+func (mw *metricsResponseWriter) Write(b []byte) (int, error) {
+	mw.headerWritten = true
+	return mw.wrapped.Write(b)
+}
+
+// We need a function to get the original http.ResponseWriter
+func (mw *metricsResponseWriter) Unwrap() http.ResponseWriter {
+	return mw.wrapped
+}
+
+// this middleware will run for every request received
+func (a *application) metrics(next http.Handler) http.Handler {
+	// Setup our variable to track the metrics
+	var (
+		totalRequestsReceived           = expvar.NewInt("total_requests_received")
+		totalResponsesSent              = expvar.NewInt("total_responses_sent")
+		totalProcessingTimeMicroseconds = expvar.NewInt("total_processing_time_μs")
+		totalResponsesSentByStatus      = expvar.NewMap("total_responses_sent_by_status")
+	)
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// start is when we receive the request and start processing it
+		start := time.Now()
+		// update our request received counter
+		totalRequestsReceived.Add(1)
+
+		// create a custom responseWriter
+		mw := newMetricsResponseWriter(w)
+
+		// we send our custom responseWriter down the middleware chain
+		next.ServeHTTP(mw, r)
+
+		// remember the middleware chain goes in both directions, so we can
+		// do things when we return back to our middleware.We will increment
+		// the responses sent counter
+		totalResponsesSent.Add(1)
+		// extract the status code for use in our metrics since we have returned
+		// from the middleware chain. The map uses strings so we need to convert the
+		// status codes from their integer values to strings
+		totalResponsesSentByStatus.Add(strconv.Itoa(mw.statusCode), 1)
+
+		// calculate the processing time for this request. Remember we set start
+		// at the beginning, so now since we are back in the middleware we can
+		// compute the time taken
+		// calculate the processing time for this request. Remember we set start
+		// at the beginning, so now since we are back in the middleware we can
+		// compute the time taken
+		duration := time.Since(start).Microseconds()
+		totalProcessingTimeMicroseconds.Add(duration)
+	})
 }

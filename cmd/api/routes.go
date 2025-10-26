@@ -1,6 +1,7 @@
 package main
 
 import (
+	"expvar"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -16,6 +17,8 @@ func (app *application) routes() http.Handler {
 	// setup routes
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
 
+	// -----
+	// Routes specific to quotes
 	router.HandlerFunc(http.MethodPost,
 		"/v1/quotes",
 		app.requireActivatedUser(app.requirePermission("quotes:write", app.createQuoteHandler)))
@@ -35,6 +38,7 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet,
 		"/v1/quotes",
 		app.requireActivatedUser(app.requirePermission("quotes:read", app.listQuotesHandler)))
+	// -----
 
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
 
@@ -49,5 +53,11 @@ func (app *application) routes() http.Handler {
 	// then sent to enableCORS()
 	// then sent to rateLimit()
 	// finally it is sent to the router.
-	return app.recoverPanic(app.enableCORS(app.rateLimit((app.authenticate(router)))))
+
+	// Expose expvar metrics for observability (use "quotes" resource name).
+	router.Handler(http.MethodGet,
+		"/v1/observability/quotes/metrics",
+		expvar.Handler())
+
+	return app.metrics(app.recoverPanic(app.enableCORS(app.rateLimit((app.authenticate(router))))))
 }
