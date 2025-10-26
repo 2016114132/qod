@@ -44,13 +44,14 @@ type configuration struct {
 	}
 }
 type application struct {
-	config     configuration
-	logger     *slog.Logger
-	quoteModel data.QuoteModel
-	userModel  data.UserModel
-	mailer     mailer.Mailer
-	wg         sync.WaitGroup // need this later for background jobs
-	tokenModel data.TokenModel
+	config          configuration
+	logger          *slog.Logger
+	quoteModel      data.QuoteModel
+	userModel       data.UserModel
+	mailer          mailer.Mailer
+	wg              sync.WaitGroup // need this later for background jobs
+	tokenModel      data.TokenModel
+	permissionModel data.PermissionModel
 }
 
 func printUB() string {
@@ -85,7 +86,8 @@ func main() {
 		userModel:  data.UserModel{DB: db},
 		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port,
 			cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
-		tokenModel: data.TokenModel{DB: db},
+		tokenModel:      data.TokenModel{DB: db},
+		permissionModel: data.PermissionModel{DB: db},
 	}
 
 	// Start the application server

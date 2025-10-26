@@ -15,11 +15,26 @@ func (app *application) routes() http.Handler {
 	router.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 	// setup routes
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
-	router.HandlerFunc(http.MethodPost, "/v1/quotes", app.requireActivatedUser(app.createQuoteHandler))
-	router.HandlerFunc(http.MethodGet, "/v1/quotes/:id", app.requireActivatedUser(app.displayQuoteHandler))
-	router.HandlerFunc(http.MethodPatch, "/v1/quotes/:id", app.requireActivatedUser(app.updateQuoteHandler))
-	router.HandlerFunc(http.MethodDelete, "/v1/quotes/:id", app.requireActivatedUser(app.deleteQuoteHandler))
-	router.HandlerFunc(http.MethodGet, "/v1/quotes", app.requireActivatedUser(app.listQuotesHandler))
+
+	router.HandlerFunc(http.MethodPost,
+		"/v1/quotes",
+		app.requireActivatedUser(app.requirePermission("quotes:write", app.createQuoteHandler)))
+
+	router.HandlerFunc(http.MethodGet,
+		"/v1/quotes/:id",
+		app.requireActivatedUser(app.requirePermission("quotes:read", app.displayQuoteHandler)))
+
+	router.HandlerFunc(http.MethodPatch,
+		"/v1/quotes/:id",
+		app.requireActivatedUser(app.requirePermission("quotes:write", app.updateQuoteHandler)))
+
+	router.HandlerFunc(http.MethodDelete,
+		"/v1/quotes/:id",
+		app.requireActivatedUser(app.requirePermission("quotes:write", app.deleteQuoteHandler)))
+
+	router.HandlerFunc(http.MethodGet,
+		"/v1/quotes",
+		app.requireActivatedUser(app.requirePermission("quotes:read", app.listQuotesHandler)))
 
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
 

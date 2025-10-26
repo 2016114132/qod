@@ -53,6 +53,16 @@ func (a *application) registerUserHandler(w http.ResponseWriter,
 		}
 		return
 	}
+
+	// Add the read permission for new users
+	// If we wanted later, we could add functionally to add the write permission
+	// when for example they made a payment and remove it when they stop paying
+	err = a.permissionModel.AddForUser(user.ID, "quotes:read")
+	if err != nil {
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+
 	// Generate a new activation token which expires in 3 days
 	token, err := a.tokenModel.New(user.ID, 3*24*time.Hour, data.ScopeActivation)
 	if err != nil {
