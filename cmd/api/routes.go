@@ -15,11 +15,11 @@ func (app *application) routes() http.Handler {
 	router.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 	// setup routes
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
-	router.HandlerFunc(http.MethodPost, "/v1/quotes", app.createQuoteHandler)
-	router.HandlerFunc(http.MethodGet, "/v1/quotes/:id", app.displayQuoteHandler)
-	router.HandlerFunc(http.MethodPatch, "/v1/quotes/:id", app.updateQuoteHandler)
-	router.HandlerFunc(http.MethodDelete, "/v1/quotes/:id", app.deleteQuoteHandler)
-	router.HandlerFunc(http.MethodGet, "/v1/quotes", app.listQuotesHandler)
+	router.HandlerFunc(http.MethodPost, "/v1/quotes", app.requireActivatedUser(app.createQuoteHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/quotes/:id", app.requireActivatedUser(app.displayQuoteHandler))
+	router.HandlerFunc(http.MethodPatch, "/v1/quotes/:id", app.requireActivatedUser(app.updateQuoteHandler))
+	router.HandlerFunc(http.MethodDelete, "/v1/quotes/:id", app.requireActivatedUser(app.deleteQuoteHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/quotes", app.requireActivatedUser(app.listQuotesHandler))
 
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
 
@@ -28,8 +28,7 @@ func (app *application) routes() http.Handler {
 	// should only happens once, also we are not creating a resource
 	router.HandlerFunc(http.MethodPut, "/v1/users/activated", app.activateUserHandler)
 
-	router.HandlerFunc(http.MethodPost,
-		"/v1/tokens/authentication", app.createAuthenticationTokenHandler)
+	router.HandlerFunc(http.MethodPost, "/v1/tokens/authentication", app.createAuthenticationTokenHandler)
 
 	// Request sent first to recoverPanic()
 	// then sent to enableCORS()

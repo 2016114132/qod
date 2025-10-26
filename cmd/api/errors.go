@@ -103,3 +103,13 @@ func (a *application) invalidAuthenticationTokenResponse(w http.ResponseWriter, 
 	a.errorResponseJSON(w, r, http.StatusUnauthorized, message)
 
 }
+
+func (a *application) authenticationRequiredResponse(w http.ResponseWriter, r *http.Request) {
+	message := "you must be authenticated to access this resource"
+	a.errorResponseJSON(w, r, http.StatusUnauthorized, message)
+}
+
+func (a *application) inactiveAccountResponse(w http.ResponseWriter, r *http.Request) {
+	message := "your user account must be activated to access this resource"
+	a.errorResponseJSON(w, r, http.StatusForbidden, message)
+}
